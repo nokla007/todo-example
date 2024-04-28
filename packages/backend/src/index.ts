@@ -3,6 +3,7 @@ import { Elysia, t } from 'elysia'
 import { migrate } from 'drizzle-orm/bun-sqlite/migrator'
 import { db } from './db/db'
 import { todos } from './db/schema'
+import { eq } from 'drizzle-orm'
 
 migrate(db, { migrationsFolder: './drizzle' })
 
@@ -67,15 +68,15 @@ const app = new Elysia()
   )
   .put(
     '/todos/:id',
-    ({ params, body, error }) => {
-      const todo = todoList.find((todo) => todo.id === params.id)
-
+    async ({ params, body, error }) => {
+      const [todo] = await db
+        .update(todos)
+        .set(body)
+        .where(eq(todos.id, params.id))
+        .returning()
       if (!todo) {
         return error(204, 'Todo can not be updated.')
       }
-
-      Object.assign(todo, body)
-
       return todo
     },
     {
@@ -91,15 +92,16 @@ const app = new Elysia()
   )
   .patch(
     '/todos/:id',
-    ({ params, body, error }) => {
-      const todo = todoList.find((todo) => todo.id === params.id)
+    async ({ params, body, error }) => {
+      const [todo] = await db
+        .update(todos)
+        .set(body)
+        .where(eq(todos.id, params.id))
+        .returning()
 
       if (!todo) {
         return error(204, 'Todo can not be updated.')
       }
-
-      Object.assign(todo, body)
-
       return todo
     },
     {
@@ -115,15 +117,15 @@ const app = new Elysia()
   )
   .delete(
     '/todos/:id',
-    ({ params, error }) => {
-      const todo = todoList.find((todo) => todo.id === params.id)
+    async ({ params, error }) => {
+      const [todo] = await db
+        .delete(todos)
+        .where(eq(todos.id, params.id))
+        .returning()
 
       if (!todo) {
         return error(204, 'Todo can not be deleted.')
       }
-
-      todoList.splice(todoList.indexOf(todo), 1)
-
       return todo
     },
     {
